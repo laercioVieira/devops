@@ -1,0 +1,93 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: myinvest-ear-deployment
+  labels:
+    app: myinvest-ear
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      version : latest
+      app: myinvest-ear
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/datasource-configmaps.yaml") . | sha256sum }}
+      labels:
+        version: latest
+        app: myinvest-ear
+    spec:
+      imagePullSecrets:
+      - name: "acr-credentials"
+      containers:
+      - name: myinvest-ear
+{{- if eq .Values.images.classifier "liberty" }}
+        image: temasistemas.azurecr.io/myinvest-liberty:{{ .Values.images.myinvest }}
+{{- else -}}
+        image: temasistemas.azurecr.io/myinvest:{{ .Values.images.myinvest }}
+{{- end }}
+        livenessProbe:
+          httpGet:
+            path: /myinvest
+            port: {{ .Values.myinvest.port }}
+          initialDelaySeconds: 120
+          periodSeconds: 120
+          timeoutSeconds: 20
+        resources:
+          requests:
+            cpu: 50m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+        ports:
+        - containerPort: {{ .Values.myinvest.port }}
+        volumeMounts:
+        - name: deployments-ds-volume
+{{- if eq .Values.images.classifier "liberty" }}
+          mountPath: /opt/liberty17/usr/servers/tema/server.xml
+          subPath: server.xml
+{{- else -}}
+          mountPath: /opt/wildfly12/standalone/deployments/myinvest-ear-ds.xml
+          subPath: myinvest-ear-ds.xml
+{{- end }}
+{{- if  .Values.jvmoptions.custom }}
+        - name: jvmoptions-volume
+          mountPath: /opt/liberty17/usr/servers/tema/jvm.options
+          subPath: jvm.options
+{{- end }}
+        -name: myinvest-arquivos-volume
+          mountPath: /bankpro
+          subPath: CarteiraAdministrada
+      volumes:
+      - name: deployments-ds-volume
+        configMap:
+          name: datasource
+          items:
+{{- if eq .Values.images.classifier "liberty" }}
+          - key: myinvest-server.xml
+            path: server.xml
+{{- else -}}
+          - key: myinvest-ear-ds.xml
+            path: myinvest-ear-ds.xml
+{{- end}}
+{{- if .Values.jvmoptions.custom }}
+      - name: jvmoptions-volume
+        configMap:
+          name: datasource
+          items:
+          - key: jvm.options
+            path: jvm.options
+{{- end }}
+      - name: myinvest-arquivos-volume
+        hostPath: 
+          path: /bankpro
+        persistentVolumeClaim:
+          claimName: myinvest-ear-pvc

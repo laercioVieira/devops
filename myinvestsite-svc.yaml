@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: myinvestsite
+  chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  release: "{{ .Release.Name }}"
+  heritage: "{{ .Release.Service }}"
+spec:
+  loadBalancerIP: {{ .Values.loadBalancerIP }}
+  type: LoadBalancer
+  ports:
+  - port: 80
+    name: http
+  - port: 443
+    name: https
+  selector:
+    app: myinvestsite
