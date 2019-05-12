@@ -1,0 +1,164 @@
+# Default values for myapp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+#Definir as versoes
+images:
+  myapp: latest
+  classifier: liberty
+#Definir o ip para o loadBalancer
+loadBalancerIP: 127.0.0.1
+serverNameUrl: tst.myapp.com.br
+serverNameAlias: tst.myapp.com.br
+myappserverxml: |- 
+  <?xml version="1.0" encoding="UTF-8"?>
+  <server description="defaultServer">
+    <variable name="SERVER_NAME" value="localhost" />
+    <variable name="APPLICATION_NAME" value="MYAPP" />
+    <variable name="DATABASE_MYAPP" value="TstMyApp" />
+    <variable name="LOGIN_TIMEOUT" value="30" />
+    <variable name="LOCK_TIMEOUT" value="3600000" />
+    <variable name="LAST_UPDATE_COUNT" value="true" />
+    <variable name="SERVER_CONFIG_DIR" value="/opt/liberty17/usr/servers/defaultServer"/>
+    <variable name="PORT_NUMBER" value="1433" />
+    <variable name="JAVAX_SQL_DATASOURCE" value="com.microsoft.sqlserver.jdbc.SQLServerDataSource" />
+    <variable name="JAVAX_SQL_CONNECTION" value="com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource" />
+    <variable name="KEYSTORE_PASSWORD" value="myapp@@123" />
+    <variable name="BASIC_REG_ADMIN" value="myapp@@123" />
+    <variable name="BASIC_REG_NONADMIN" value="myapp" />
+    <variable name="BASIC_REG_OPERACAO" value="myapp" />
+    <variable name="LIBRARY_JDBC_DIR" value="/opt/liberty17/usr/servers/defaultServer/libs" />
+    <variable name="LIBRARY_JDBC_INCLUDES" value="sqljdbc42-6.0.jar" />
+    <variable name="LIBRARY_JDBC_ORACLE_INCLUDES" value="ojdbc7-12.1.0.2.jar" />
+
+    <featureManager>
+      <feature>javaee-7.0</feature>
+      <feature>localConnector-1.0</feature>
+      <feature>adminCenter-1.0</feature>
+      <feature>appSecurity-2.0</feature>
+      <feature>ldapRegistry-3.0</feature>
+    </featureManager>
+
+    <keyStore id="defaultKeyStore" password="${KEYSTORE_PASSWORD}" />
+
+    <administrator-role>
+      <user>admin</user>
+      <user>operacao</user>
+    </administrator-role>
+
+    <basicRegistry id="basic">
+      <user name="admin" password="${BASIC_REG_ADMIN}" />
+      <user name="nonadmin" password="${BASIC_REG_NONADMIN}" />
+      <user name="operacao" password="${BASIC_REG_OPERACAO}" />
+    </basicRegistry>
+
+    <httpEndpoint id="defaultHttpEndpoint"
+        host="*" httpPort="8080" httpsPort="9943" />
+
+    <remoteFileAccess>
+      <writeDir>${SERVER_CONFIG_DIR}</writeDir>
+    </remoteFileAccess>
+
+    <managedScheduledExecutorService
+      jndiName="concurrent/scheduledExecutor">
+      <contextService>
+        <classloaderContext />
+        <jeeMetadataContext />
+        <securityContext />
+      </contextService>
+    </managedScheduledExecutorService>
+
+    <executor name="LargeThreadPool" id="default" coreThreads="-1"
+      keepAlive="60s" stealPolicy="STRICT" rejectedWorkPolicy="CALLER_RUNS" />
+
+    <library id="JDBCSqlServer">
+      <fileset dir="${LIBRARY_JDBC_DIR}" includes="${LIBRARY_JDBC_INCLUDES}" />
+    </library>
+    
+    <library id="h2">
+      <fileset dir="${SERVER_CONFIG_DIR}/libs" id="h2" includes="h2-1.4.191.jar" />
+    </library>
+
+    <jdbcDriver id="h2" javax.sql.ConnectionPoolDataSource="org.h2.jdbcx.JdbcConnectionPool"
+      javax.sql.DataSource="org.h2.jdbcx.JdbcDataSource" libraryRef="h2" />
+
+    <httpOptions maxKeepAliveRequests="-1" />
+    <webContainer skipMetaInfResourcesProcessing="false" />
+    <applicationMonitor dropinsEnabled="false" updateTrigger="disabled" />
+    <config updateTrigger="disabled" />
+    <cdi12 enableImplicitBeanArchives="false" />
+    
+    <dataSource id="myapp" isolationLevel="TRANSACTION_READ_UNCOMMITTED"   
+        jndiName="jdbc/myapp-earDS" type="javax.sql.DataSource"
+          statementCacheSize="100">
+          <jdbcDriver javax.sql.ConnectionPoolDataSource="${JAVAX_SQL_CONNECTION}"
+              javax.sql.DataSource="${JAVAX_SQL_DATASOURCE}" libraryRef="JDBCSqlServer" />
+          <properties.microsoft.sqlserver
+              databaseName="${DATABASE_MYAPP}" serverName="${SERVER_NAME}" 
+              applicationName="${APPLICATION_NAME}" 
+              lockTimeout="${LOCK_TIMEOUT}" loginTimeout="${LOGIN_TIMEOUT}"
+              lastUpdateCount="${LAST_UPDATE_COUNT}" user="myapp"
+              password="myapp@@123" />
+          <connectionManager maxPoolSize="100" minPoolSize="10"
+              purgePolicy="FailingConnectionOnly" />
+    </dataSource>
+
+    <dataSource id="DefaultDataSource" jndiName="jdbc/DefaultDataSource"
+      jdbcDriverRef="h2" type="javax.sql.DataSource">
+      <properties
+        URL="jdbc:h2:${SERVER_CONFIG_DIR}/data/EJBTimerDB;AUTO_SERVER=TRUE"
+        user="sa" password="sa" />
+    </dataSource>
+
+    <enterpriseApplication id="myapp-ear"
+            location="${SERVER_CONFIG_DIR}/apps/myapp-ear.ear" name="myapp-ear">
+      <classloader delegation="parentLast" />
+    </enterpriseApplication>
+
+    <transaction clientInactivityTimeout="120000s"
+      heuristicRetryInterval="120000s" totalTranLifetimeTimeout="120000s"></transaction>
+    
+    <logging traceSpecification="*=info" consoleLogLevel="INFO" traceFormat="ADVANCED" maxFiles="10"/>
+
+  </server>
+myappkey: |- 
+  -----BEGIN RSA PRIVATE KEY-----
+  # <String da Chave Privada Arquivo ex.: tst.myapp.key>
+  -----END RSA PRIVATE KEY-----
+myappcrt: |-
+  -----BEGIN CERTIFICATE-----
+  # <String do Certificado Arquivo ex.: tst.myapp.[crt|cer]>
+  -----END CERTIFICATE-----
+jvmoptions:
+    custom: true
+    value: |-
+      -server
+      -Dcom.ibm.ws.webcontainer.invokefilterscompatibility=true
+      -DprependSlashToResource=true
+      -Dcom.ibm.ws.webcontainer.suppressLoggingFileNotFoundExceptions=true
+      -Dcom.ibm.ws.webcontainer.assumeFilterSuccessOnSecurityError=true
+      -Djavax.xml.stream.XMLEventFactory=com.sun.xml.internal.stream.events.XMLEventFactoryImpl
+      -Djavax.xml.stream.XMLInputFactory=com.sun.xml.internal.stream.XMLInputFactoryImpl
+      -Djavax.xml.stream.XMLOutputFactory=com.sun.xml.internal.stream.XMLOutputFactoryImpl
+      -Duser.language=pt
+      -Duser.country=BR
+      -Dcom.ibm.websphere.ras.inject.at.transform=true
+      -Dwas.debug.mode=true
+      -Dhibernate.dialect=org.hibernate.dialect.SQLServer2012Dialect
+      -Xms300m
+      -Xmx1600m
+      -XX:MaxMetaspaceSize=512M
+      -XX:+AggressiveOpts
+      -XX:+UseFastAccessorMethods
+      -XX:+OptimizeStringConcat
+      -XX:+UseG1GC
+      -XX:+UseGCOverheadLimit
+      -Dcom.sun.management.jmxremote.port=2339
+      -Dcom.sun.management.jmxremote.authenticate=false
+      -Dcom.sun.management.jmxremote.ssl=false
+      -Dorg.slf4j.simpleLogger.logFile=System.out
+      -Dorg.slf4j.simpleLogger.defaultLogLevel=info
+#Definir dados para acesso ao repositorio
+imageCredentials:
+  username: <usernameRepositorioPrivado>
+  password: <passwordRepositorioPrivado>
+#TenantId 0133f400-a449-4646-8556-4d0551fbe8b0

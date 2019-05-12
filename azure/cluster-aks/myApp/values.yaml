@@ -1,0 +1,37 @@
+# Default values for myapp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+images:
+  myapp: latest
+  security: latest
+  classifier: wildfly12
+#Portas do container, deve ser de acordo com a configuracao do server.xml caso contrario sera a default 8080
+myapp:
+  port: 8080
+security:
+  port: 8080
+#Definir o ip para o loadBalancer
+loadBalancerIP: 127.0.1.1
+#Definir dados de acesso ao BD caso o classifier seja wildfly12
+jdbcUrl: jdbc:sqlserver://servidor;databaseName=tstmyappWeb;
+userDataBase: usuario
+passwordDataBase: senha
+serverNameUrl: tst.myapp.com.br
+serverNameAlias: tst.myapp.com.br
+#Definir caso o classifier seja liberty
+myappserverxml: |- 
+    <server></server>
+myappkey: |- 
+    -----BEGIN RSA PRIVATE KEY-----
+    -----END RSA PRIVATE KEY-----
+myappcrt: |-
+    -----BEGIN CERTIFICATE-----
+    -----END CERTIFICATE-----
+jvmoptions:
+  custom: false
+  value: 
+#Definir dados para acesso ao repositorio
+imageCredentials:
+  registry: laersondev.azurecr.io
+  username: <usernameRepositorioPrivado>
+  password: <passwordRepositorioPrivado>

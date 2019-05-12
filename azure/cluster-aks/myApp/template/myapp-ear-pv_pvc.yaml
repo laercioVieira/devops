@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: myapp-ear-volume
+  labels:
+    app: myapp-ear
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  capacity:
+    storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: default
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:
+    path: /myappdata/
+    server: myapp-ear-svc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myapp-ear-pvc
+  labels:
+    app: myapp-ear
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: default
+  resources:
+    requests:
+      storage: 2Gi
+  selector: 
+    matchLabels:
+      release: "latest"
+      app: myapp-ear

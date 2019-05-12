@@ -1,0 +1,70 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: myappsite-deployment
+  chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+  release: "{{ .Release.Name }}"
+  heritage: "{{ .Release.Service }}"
+  labels:
+    app: myappsite
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: myappsite
+  template:
+    metadata:
+      annotations:
+          checksum/config: {{ include (print $.Template.BasePath "/myappsite-configmaps.yaml") . | sha256sum }}
+      labels:
+        app: myappsite
+    spec:
+      imagePullSecrets:
+      - name: "acr-credentials"
+      containers:
+      - name: myappsite
+        image: laersondev.azurecr.io/nginx-base:latest
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+        volumeMounts:
+        - name: myapp-nginx
+          mountPath: /etc/nginx/conf.d/myapp-nginx.conf
+          subPath: myapp-nginx.conf
+        - name: myapp-crt
+          mountPath: /etc/nginx/myapp.crt
+          subPath: myapp.crt
+        - name: myapp-key
+          mountPath: /etc/nginx/myapp.key
+          subPath: myapp.key          
+      volumes:
+      - name: myapp-crt
+        configMap:
+          name: myapp-nginx
+          items:
+          - key: myapp.crt
+            path: myapp.crt
+      - name: myapp-key
+        configMap:
+          name: myapp-nginx
+          items:
+          - key: myapp.key
+            path: myapp.key
+      - name: myapp-nginx
+        configMap:
+          name: myapp-nginx
+          items:
+          - key: myapp-nginx.conf
+            path: myapp-nginx.conf

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-ear-svc
+  labels:
+    app: myapp-ear
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  selector:
+    app: myapp-ear
+  type: NodePort
+  sessionAffinity: ClientIP
+  ports: 
+  - protocol: TCP
+    port: {{ .Values.myapp.port }}
